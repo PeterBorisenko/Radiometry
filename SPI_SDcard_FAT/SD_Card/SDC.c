@@ -31,6 +31,7 @@ void cardTurnOff(card_t * card) {
 }
 
 void sendCom(uint8_t cmd, uint32_t arg) {
+	
 	SPI_WriteByte(cmd); //TODO: make SPI_Write fnk for long data types
 	SPI_WriteByte((arg >> 24)&0xFF);
 	SPI_WriteByte((arg >> 16)&0xFF);
@@ -45,11 +46,7 @@ void sendAppCom(uint8_t cmd, uint32_t arg) {
 	SPI_WriteByte(0x00);
 	SPI_WriteByte(0x00);
 	SPI_FlushBuffer();
-	SPI_WriteByte(cmd);
-	SPI_WriteByte(((uint32_t)arg >> 24)&0xFF);
-	SPI_WriteByte(((uint32_t)arg >> 16)&0xFF);
-	SPI_WriteByte(((uint32_t)arg >> 8)&0xFF);
-	SPI_WriteByte((uint32_t)arg&0xFF);
+	sendCom(cmd, arg);
 }
 
 uint8_t cardCheck(card_t * card) // if CARD_PRESENCE
