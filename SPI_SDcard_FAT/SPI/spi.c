@@ -34,7 +34,7 @@ spiDevice_t SPI_deviceInit(PORT_t devPort, unsigned char csPin, unsigned char * 
     return spd;
 }
 
-void SPI_deviceAttachBuffer(spiDevice_t * dev, uint8_t * buf, uint8_t length, uint8_t R_W) {
+void SPI_deviceAttachBuffer(spiDevice_t * dev, ring_buffer_t buf, uint8_t R_W) {
 	
 }
 
