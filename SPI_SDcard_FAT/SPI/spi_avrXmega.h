@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 	#include <avr/io.h>
-	#ifdef SPIC
+#ifdef SPIC
 	#undef SPIC
 #endif
 
@@ -62,7 +62,7 @@ extern "C" {
 		SPI_DATA_REG_t SPI_DATA_REG;
 	} SPI_C_t;
 	
-	SPI_C_t *SPI_C= 0x08C0;
+	SPI_C_t * SPI_C= (SPI_C_t *)0x08C0;
 	
 	// SPI MODES
 	#define SPI_MODE_0			0x00	// CPOL= 0, CPHA= 0, 
@@ -74,6 +74,7 @@ extern "C" {
 	#define SPI_BUFFER          (SPI_C->SPI_DATA_REG)
 	#define SPI_BUFFER_EMPTY    (SPI_C->SPI_STATUS_REG.bit.IF)
 	#define SPI_DATA_RECEIVED	(SPI_C->SPI_STATUS_REG.bit.IF)
+	#define SPI_COLLISION		(SPI_C->SPI_STATUS_REG.bit.WRCOL)
 	#define SPI_ENABLE          (SPI_C->SPI_CTRL_REG.bit.ENABLE)
 	#define SPI_MODE            (SPI_C->SPI_CTRL_REG.bit.MODE)
 	#define SPI_PHASE           0

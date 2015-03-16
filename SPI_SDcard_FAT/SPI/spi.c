@@ -5,6 +5,8 @@ volatile static spiMutex_t spiMutex;
 
 // TODO: To make this lib universal we need to use funcs for pin/ports management but implement it in other file
 
+
+
 void SPI_Init(uint8_t mode) {
 	
 	// SPI I/O Ports Init
@@ -68,7 +70,16 @@ uint8_t chipRelease(spiDevice_t * spd){
 
 void SPI_WriteByte(uint8_t data)
 {
-   SPI_BUFFER = data;
+   
+	while (1) {
+		SPI_BUFFER = data;
+		if (!SPI_COLLISION) {
+			break;
+		}
+		else {
+			SPI_FlushBuffer();
+		}
+	}
    while(!SPI_BUFFER_EMPTY);
 }
 
@@ -133,20 +144,20 @@ void SPI_FlushBuffer() {
 	}
 }
 
-void SPI_ISR_Handler (uint8_t * buffer, uint8_t length, uint8_t counter) {
+void SPI_ISR_Handler (ring_buffer_t * buf) {
 	switch (SPI_State) {
 		case SPI_READ:
-			*(buffer+counter) = SPI_BUFFER;
-			if (++counter >= length)
+			*(buf->buffer+buf->counter) = SPI_BUFFER;
+			if (++buf->counter >= buf->length)
 			{
-				counter= 0;
+				buf->counter= 0;
 			}
 			break;
 		case SPI_WRITE:
-			SPI_BUFFER= *(buffer+counter);
-			if (++counter >= length)
+			SPI_BUFFER= *(buf->buffer+buf->counter);
+			if (++buf->counter >= buf->length)
 			{
-				counter= 0;
+				buf->counter= 0;
 			}
 			break;
 		default:
@@ -154,10 +165,4 @@ void SPI_ISR_Handler (uint8_t * buffer, uint8_t length, uint8_t counter) {
 	};
 }
 
-typedef struct {
-	uint8_t * buffer;	// storage address
-	uint8_t length;		// buffer length (max counter = length - 1)
-	uint8_t counter;	// next empty element (accessing : *(buffer+counter))
-	} ring_buffer_t;
-	
-	// TODO: Implement Read, Write and Flush ring buffer
+

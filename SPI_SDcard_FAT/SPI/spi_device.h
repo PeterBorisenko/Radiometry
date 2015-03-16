@@ -1,6 +1,6 @@
 /* 
  * File:   spi.h
- * Author: Peter Borisenko/AWSMTEK.COM
+ * Author: Peter Borisenko / AWSMTEK.COM
  * For using with ATXmega and ATSAM devices
  * Created on 9 ???? 2015 ?., 22:42
  */
@@ -23,6 +23,14 @@ extern "C" {
 
 #define MUTEX_CAPTURED		1
 #define MUTEX_FREE			0
+
+typedef struct {
+	uint8_t * buffer;	// storage address
+	uint8_t length;		// buffer length (max counter = length - 1)
+	uint8_t counter;	// next empty element (accessing : *(buffer+counter))
+} ring_buffer_t;
+
+// TODO: Implement Read, Write and Flush ring buffer
 
 typedef uint8_t spiMutex_t;
 
@@ -52,12 +60,12 @@ enum {
     void SPI_WriteArray(spiDevice_t *, uint8_t, uint8_t *, uint8_t);
     void SPI_ReadArray(spiDevice_t *, uint8_t, uint8_t *, uint8_t);
 
-    inline uint8_t chipSelect(spiDevice_t *);
-    inline uint8_t chipRelease(spiDevice_t *);
-    inline void waitForSPI(void);
+    uint8_t chipSelect(spiDevice_t *);
+    uint8_t chipRelease(spiDevice_t *);
+    void waitForSPI(void);
 	void SPI_FlushBuffer();
 	
-	void SPI_ISR_Handler();
+	void SPI_ISR_Handler (ring_buffer_t *);
 
 #ifdef	__cplusplus
 }

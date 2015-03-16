@@ -34,8 +34,8 @@ typedef enum {
 typedef enum {
 	UNCKNOWN,
 	SD_v1,
-	SD_v2_BLOCK_ADDR,
-	SD_v2_BYTE_ADDR,
+	SD_v2_SC,
+	SD_v2_HC,
 	MMC_v3
 	} card_type_t;
 
@@ -64,12 +64,13 @@ typedef enum {
 	DATA_TRANSFER_MODE
 	} card_opmode_t;
 
+#define STUFF 0x00000000
 
 // SD Card Commands
 #if defined(USE_SPI)
 
 	#define CMD0	0b000000
-		#define cmd0_arg(STUFF)		(uint32_t)(STUFF)			// GO_IDLE_STATE
+		#define cmd0_arg		(uint32_t)(STUFF)			// GO_IDLE_STATE
 	#define CMD1	0b000001
 		#define cmd1_arg(HCS)	(uint32_t)(0x0000|(HCS << 30))		// SEND_OP_COND
 	#define CMD6	0b000110
@@ -80,13 +81,13 @@ typedef enum {
 	#define CMD8	0b001000
 		#define cmd8_arg(VHS,CH_PTRN)	(uint32_t)(0x0000|(VHS << 8)|CH_PTRN)	// SEND_IF_COND
 	#define CMD9	0b001001
-		#define cmd9_arg(STUFF)		(uint32_t)(STUFF)			// SEND_CSD
+		#define cmd9_arg		(uint32_t)(STUFF)			// SEND_CSD
 	#define CMD10	0b001010
-		#define cmd10_arg(STUFF)	(uint32_t)(STUFF)			// SEND_CID
+		#define cmd10_arg	(uint32_t)(STUFF)			// SEND_CID
 	#define CMD12	0b001100
-		#define cmd12_arg(STUFF)	(uint32_t)(STUFF)			// STOP_TRANSMISSION
+		#define cmd12_arg	(uint32_t)(STUFF)			// STOP_TRANSMISSION
 	#define CMD13	0b001101
-		#define cmd13_arg(STUFF)	(uint32_t)(STUFF)			// SEND_STATUS
+		#define cmd13_arg	(uint32_t)(STUFF)			// SEND_STATUS
 	#define CMD16	0b010000
 		#define cmd16_arg(BLK_LENGTH)	(uint32_t)(BLK_LENGTH)		// SET_BLOCKLEN
 	#define CMD17	0b010001
@@ -98,7 +99,7 @@ typedef enum {
 	#define CMD25	0b011001
 		#define cmd25_arg(ADDR)		(uint32_t)(ADDR)			// WRITE_MULTIPLE_BLOCK
 	#define CMD27	0b011011
-		#define cmd27_arg(STUFF)	(uint32_t)(STUFF)			// PROGRAM_CSD
+		#define cmd27_arg	(uint32_t)(STUFF)			// PROGRAM_CSD
 	#define CMD28	0b011100
 		#define cmd28_arg(ADDR)		(uint32_t)(ADDR)			// SET_WRITE_PROT
 	#define CMD29	0b011101
@@ -110,33 +111,33 @@ typedef enum {
 	#define CMD33	0b100001
 		#define cmd33_arg(ADDR)		(uint32_t)(ADDR)			// ERASE_WR_BLK_END
 	#define CMD38	0b100110
-		#define cmd38_arg(STUFF)	(uint32_t)(STUFF)			// ERASE
+		#define cmd38_arg	(uint32_t)(STUFF)			// ERASE
 	#define CMD42	0b101010
-		#define cmd42_arg()			(uint32_t)(0x0000)			//LOCK_UNLOCK
+		#define cmd42_arg			(uint32_t)(0x0000)			//LOCK_UNLOCK
 	#define CMD55	0b110111
-		#define cmd55_arg(STUFF)	(uint32_t)(STUFF)			// APP_CMD
+		#define cmd55_arg	(uint32_t)(STUFF)			// APP_CMD
 	#define CMD56	0b111000
-		#define cmd56_arg(STUFF,RD_WR)	(uint32_t)((STUFF << 1)|RD_WR)		// GEN_CMD
+		#define cmd56_arg(RD_WR)	(uint32_t)((STUFF << 1)|RD_WR)		// GEN_CMD
 	#define CMD58	0b111010
-		#define cmd58_arg(STUFF)	(uint32_t)(STUFF)			// READ_OCR
+		#define cmd58_arg	(uint32_t)(STUFF)			// READ_OCR
 	#define CMD59	0b111011
-		#define cmd59_arg(STUFF, CRC_OPT)	(uint32_t)((STUFF << 1)|CRC_OPT)
+		#define cmd59_arg(CRC_OPT)	(uint32_t)((STUFF << 1)|CRC_OPT)
 	
 	// App specific
 	#define ACMD13	
-		#define acmd13_arg(STUFF)	(uint32_t)(STUFF)			// SD_STATUS
+		#define acmd13_arg	(uint32_t)(STUFF)			// SD_STATUS
 	#define ACMD18
 	#define ACMD22	
-		#define acmd22_arg(STUFF)	(uint32_t)(STUFF)			// SEND_NUM_WR_BLOCKS
+		#define acmd22_arg	(uint32_t)(STUFF)			// SEND_NUM_WR_BLOCKS
 	#define ACMD23	
-		#define acmd23_arg(STUFF,NUM_OF_BLKS)	(uint32_t)((STUFF << 23)|NUM_OF_BLKS)	// SET_WR_BLOCK_ERASE_COUNT
+		#define acmd23_arg(NUM_OF_BLKS)	(uint32_t)((STUFF << 23)|NUM_OF_BLKS)	// SET_WR_BLOCK_ERASE_COUNT
 	#define ACMD25
 	#define ACMD26
 	#define ACMD38
 	#define ACMD41	0b101001	
 		#define acmd41_arg(HCS)	(uint32_t)(0x0000|(HCS << 30))	// APP_SEND_OP_COND
 	#define ACMD42	
-		#define acmd42_arg(STUFF,SET_CD)	(uint32_t)((STUFF << 1)|SET_CD)	// SET_CLR_CARD_DETECT
+		#define acmd42_arg(SET_CD)	(uint32_t)((STUFF << 1)|SET_CD)	// SET_CLR_CARD_DETECT
 	#define ACMD43
 	#define ACMD44
 	#define ACMD45
@@ -145,7 +146,7 @@ typedef enum {
 	#define ACMD48
 	#define ACMD49
 	#define ACMD51	
-		#define acmd51_arg(STUFF)	(uint32_t)(STUFF)				// SEND_SCR
+		#define acmd51_arg	(uint32_t)(STUFF)				// SEND_SCR
 	
 
 #elif defined(USE_SDIO)
@@ -171,11 +172,126 @@ typedef enum {
 #endif
 
 // Card registers
-struct  
-{
-	
-} CID_REG;
+typedef struct {
+	uint8_t year;
+	uint8_t mounth : 4;
+	} date_t;
 
+typedef struct  
+{
+	uint8_t manufacturerId;
+	char OEM_applicationId[2];
+	char productName[5];
+	uint8_t productRevisionH : 4;
+	uint8_t productRevisionL : 4;
+	uint32_t serialNumber;
+	uint8_t reserved : 4;
+	date_t manufacturingDate;
+	uint8_t crc7 : 7;
+	uint8_t bit0 : 1;
+} CID_REG_t;
+
+typedef struct
+{
+	uint8_t CSD_STRUCTURE : 2;
+	uint8_t reserved1 : 6;
+	uint8_t TAAC;
+	uint8_t NSAC;
+	uint8_t TRAN_SPEED;
+	uint16_t CCC : 12;
+	uint8_t READ_BL_LEN : 4;
+	uint8_t READ_BL_PARTIAL : 1;
+	uint8_t WRITE_BLK_MISALIGN : 1;
+	uint8_t READ_BLK_MISALIGN : 1;
+	uint8_t DSR_IMP : 1;
+	uint8_t reserved2 : 2;
+	uint16_t C_SIZE : 12;
+	uint8_t VDD_R_CURR_MIN : 3;
+	uint8_t VDD_R_CURR_MAX : 3;
+	uint8_t VDD_W_CURR_MIN : 3;
+	uint8_t VDD_W_CURR_MAX : 3;
+	uint8_t C_SIZE_MULT : 3;
+	uint8_t ERASE_BLK_EN : 1;
+	uint8_t SECTOR_SIZE : 7;
+	uint8_t WP_GRP_SIZE : 7;
+	uint8_t WP_GRP_ENABLE : 1;
+	uint8_t reserved3 : 3;
+	uint8_t R2W_FACTOR : 3;
+	uint8_t WRITE_BL_LEN : 4;
+	uint8_t WRITE_BL_PARTIAL : 1;
+	uint8_t reserved4 : 5;
+	uint8_t FILE_FORMAT_GRP : 1;
+	uint8_t COPY : 1;
+	uint8_t PERM_WRITE_PROTECT : 1;
+	uint8_t TMP_WRITE_PROTECT : 1;
+	uint8_t FILE_FORMAT : 2;
+	uint8_t reserved5 : 2;
+	uint8_t CRC_sum : 7;
+	uint8_t bit0 : 1;
+} CSD_v1_REG_t;
+
+typedef struct
+{
+	uint8_t CSD_STRUCTURE : 2;
+	uint8_t reserved1 : 6;
+	uint8_t TAAC;
+	uint8_t NSAC;
+	uint8_t TRAN_SPEED;
+	uint16_t CCC : 12;
+	uint8_t READ_BL_LEN : 4;
+	uint8_t READ_BL_PARTIAL : 1;
+	uint8_t WRITE_BLK_MISALIGN : 1;
+	uint8_t READ_BLK_MISALIGN : 1;
+	uint8_t DSR_IMP : 1;
+	uint8_t reserved2 : 6;
+	uint32_t C_SIZE : 22;
+	uint8_t reserved3 : 1;
+	uint8_t ERASE_BLK_EN : 1;
+	uint8_t SECTOR_SIZE : 7;
+	uint8_t WP_GRP_SIZE : 7;
+	uint8_t WP_GRP_ENABLE : 1;
+	uint8_t reserved4 : 2;
+	uint8_t R2W_FACTOR : 3;
+	uint8_t WRITE_BL_LEN : 4;
+	uint8_t WRITE_BL_PARTIAL : 1;
+	uint8_t reserved5 : 5;
+	uint8_t FILE_FORMAT_GRP : 1;
+	uint8_t COPY : 1;
+	uint8_t PERM_WRITE_PROTECT : 1;
+	uint8_t TMP_WRITE_PROTECT : 1;
+	uint8_t FILE_FORMAT : 2;
+	uint8_t reserved6 : 2;
+	uint8_t CRC_sum : 7;
+	uint8_t bit0 : 1;
+} CSD_v2_REG_t;
+
+typedef struct {
+	uint8_t SCR_Struct : 4;
+	uint8_t SD_Spec : 4;
+	uint8_t DATA_STAT_AFTER_ERASE : 1;
+	uint8_t SD_SECURITY : 3;
+	uint8_t SD_BUS_WIDTHS : 4;
+	uint8_t SD_SPEC3: 1;
+	uint8_t EX_SECURITY : 4;
+	uint8_t SD_SPEC4 :1;
+	uint8_t reserved1 : 6;
+	uint8_t CMD_SUPPORT : 4;
+	uint32_t reserved2;
+	} SCR_REG_t;
+	
+
+// Command token
+typedef union {
+	 struct {
+		uint8_t start_bit : 1; // always is 0
+		uint8_t transmission_bit : 1; // always is 1
+		uint8_t cmd : 6;
+		uint32_t arg;
+		uint8_t crc : 7;
+		uint8_t end_bit :1; // always is 1
+	} bit;
+	uint8_t reg[6];
+} Command_t;
 
 // Data packet
 typedef struct {
@@ -187,18 +303,13 @@ typedef struct {
 
 typedef union {
 	struct {
-		uint8_t cmd;
+		Command_t cmd;
 		SDC_Packet_t packet;
 		};
 		
 	}SDC_Message_t;
 
 // Data response tokens
-	
-	// Additional types for handling responses
-typedef struct{
-	uint8_t bytes[5];
-} uint40_t;
 
 typedef union {
 	struct {
@@ -232,7 +343,7 @@ typedef union {
 		uint8_t ccs				: 1;
 		uint8_t power_up_stat	: 1;
 	} bit;
-	uint32_t reg;
+	uint8_t reg[4];
 } ocr_reg_t;
 
 	// R1 format
@@ -254,7 +365,7 @@ union {
 		uint8_t wp_erase_skip_lock_unlock_cmd_failed : 1;
 		uint8_t card_is_locked : 1;
 	} bit;
-	uint16_t reg;
+	uint8_t reg[2];
 } R2_response;
 
 	// R3 format  -  This response token is sent by the card when a READ_OCR command is received
@@ -263,7 +374,7 @@ union {
 		R1_t r1;
 		ocr_reg_t OCR;
 	} part;
-	uint40_t full;
+	uint8_t reg[5];
 } R3_response;
 
 	// R4 & R5 are in the SDIO mode
@@ -277,7 +388,7 @@ union {
 		uint8_t voltage_accepted : 4;
 		uint8_t check_pattern;
 		}parts;
-	uint40_t full;
+	uint8_t reg[5];
 	} R7_response;
 
 
@@ -302,13 +413,16 @@ struct {
 #define CMD25_ST_TK			0b1111101 // Stop tran for com25
 
 //Error token
-struct {
-	uint8_t not_used : 4;
-	uint8_t out_of_range : 1;
-	uint8_t ecc_failed : 1;
-	uint8_t cc_err : 1;
-	uint8_t error : 1;
-}Error_tk;
+typedef union {
+	struct{
+		uint8_t not_used : 4;
+		uint8_t out_of_range : 1;
+		uint8_t ecc_failed : 1;
+		uint8_t cc_err : 1;
+		uint8_t error : 1;
+	} bit;
+	uint8_t reg;
+} ErrorTk_t;
 
 
 
@@ -328,12 +442,14 @@ uint16_t cardIDread();
 
 void SD_SoftReset();
 void SD_init();
-void SD_blockRead();
-void SD_multBlockRead();
-void SD_blockWrite();
-void SD_multBlockWrite();
 
+uint8_t SD_blockRead(card_t *, uint32_t);
+uint8_t SD_multBlockRead(card_t *, uint32_t, uint8_t *, uint8_t);
+uint8_t SD_blockWrite(card_t *, uint32_t, uint8_t *, uint8_t);
+uint8_t SD_multBlockWrite();
 
+void SD_CRCon();
+void SD_CRCoff();
 
 uint8_t readR1Response();
 uint8_t readR2Response();
