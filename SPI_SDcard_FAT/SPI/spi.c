@@ -134,25 +134,25 @@ void SPI_FlushBuffer() {
 	}
 }
 
-void SPI_ISR_Handler (ring_buffer_t * buf) {
-	switch (SPI_State) {
-		case SPI_READ:
-			*(buf->buffer+buf->counter) = SPI_BUFFER;
-			if (++buf->counter >= buf->length)
-			{
-				buf->counter= 0;
-			}
-			break;
-		case SPI_WRITE:
-			SPI_BUFFER= *(buf->buffer+buf->counter);
-			if (++buf->counter >= buf->length)
-			{
-				buf->counter= 0;
-			}
-			break;
-		default:
-			break;
-	};
-}
+// void SPI_ISR_Handler (ring_buffer_t * buf) {
+// 	switch (SPI_State) {
+// 		case SPI_READ:
+// 			*(buf->buffer+buf->counter) = SPI_BUFFER;
+// 			if (++buf->counter >= buf->length)
+// 			{
+// 				buf->counter= 0;
+// 			}
+// 			break;
+// 		case SPI_WRITE:
+// 			SPI_BUFFER= *(buf->buffer+buf->counter);
+// 			if (++buf->counter >= buf->length)
+// 			{
+// 				buf->counter= 0;
+// 			}
+// 			break;
+// 		default:
+// 			break;
+// 	};
+// }
 
 

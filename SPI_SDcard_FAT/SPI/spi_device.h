@@ -58,7 +58,7 @@ enum {
 	void SPI_FlushBuffer();
 	
 	// Ring buffer using
-	void SPI_ISR_Handler (ring_buffer_t *);
+	//void SPI_ISR_Handler (spiDevice_t *);
 
 #ifdef	__cplusplus
 }
