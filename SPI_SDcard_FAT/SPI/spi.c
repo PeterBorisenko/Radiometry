@@ -23,25 +23,15 @@ void SPI_Init(uint8_t mode) {
 	SPI_MODE= mode;
 }
 
-spiDevice_t SPI_deviceInit(PORT_t devPort, unsigned char csPin, unsigned char * buffer, uint8_t pr) {
+spiDevice_t SPI_deviceInit(PORT_t devPort, unsigned char csPin, unsigned char * name, uint8_t pr) {
 	devPort.DIRSET= csPin;
 	spiDevice_t spd;
-	strcpy(spd.name, buffer);
+	strcpy(spd.name, name);
 	spd.priority= pr;
 	spd.devPort= devPort;
 	spd.csPin= csPin;
 	spd.devPort.OUTSET= csPin;
-	spd.readBuffer.buffer= NULL;
-	spd.writeBuffer.buffer= NULL;
     return spd;
-}
-
-void SPI_deviceAttachBuffer(spiDevice_t * dev, ring_buffer_t buf, uint8_t R_W) {
-	
-}
-
-void SPI_deviceDetachBuffer(spiDevice_t * dev, uint8_t R_W) {
-	
 }
 
 uint8_t chipSelect(spiDevice_t * spd){

@@ -24,12 +24,6 @@ extern "C" {
 #define MUTEX_CAPTURED		1
 #define MUTEX_FREE			0
 
-typedef struct {
-	uint8_t * buffer;	// storage address
-	uint8_t length;		// buffer length (max counter = length - 1)
-	uint8_t counter;	// next empty element (accessing : *(buffer+counter))
-} ring_buffer_t;
-
 // TODO: Implement Read, Write and Flush ring buffer
 
 typedef uint8_t spiMutex_t;
@@ -40,8 +34,6 @@ typedef struct {
     uint8_t csPin;
     uint8_t priority;
     spiMutex_t activity;
-	ring_buffer_t readBuffer;
-	ring_buffer_t writeBuffer;
 } spiDevice_t;
 
 enum {
@@ -51,7 +43,7 @@ enum {
 
     // SPI core functions
     void SPI_Init(uint8_t mode);
-    spiDevice_t SPI_deviceInit(PORT_t devPort, uint8_t csPin, unsigned char * buffer, uint8_t pr);
+    spiDevice_t SPI_deviceInit(PORT_t devPort, uint8_t csPin, unsigned char * name, uint8_t pr);
     
     void SPI_WriteByte(uint8_t);
     uint8_t SPI_ReadByte();
@@ -65,6 +57,7 @@ enum {
     void waitForSPI(void);
 	void SPI_FlushBuffer();
 	
+	// Ring buffer using
 	void SPI_ISR_Handler (ring_buffer_t *);
 
 #ifdef	__cplusplus
