@@ -13,7 +13,7 @@
 //#define USE_SDIO
 
 #include "crc7.h"
-#include "r_buffer.h"
+#include "../r_buffer.h"
 
 /*
 CRC7
@@ -446,8 +446,8 @@ typedef union {
 // Function definitions
 
 card_t * initCardObject(spiDevice_t *, PORT_t, uint8_t, uint8_t);
-void cardAttachBuffer(spiDevice_t * dev, ring_buffer_t buf, uint8_t R_W);
-void cardDetachBuffer(spiDevice_t * dev, uint8_t R_W);
+void cardAttachBuffer(card_t * dev, ring_buffer_t buf, uint8_t R_W);
+void cardDetachBuffer(card_t * dev, uint8_t R_W);
 
 void cardPowerUp(card_t *);
 void cardPowerDwn(card_t *);
@@ -472,5 +472,6 @@ uint8_t readR1Response();
 uint8_t readR2Response();
 uint8_t readR3Response();
 uint8_t readR7Response();
+uint8_t readDataResponse();
 
 #endif /* SDC_H_ */

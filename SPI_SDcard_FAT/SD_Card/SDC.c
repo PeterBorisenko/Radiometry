@@ -5,6 +5,8 @@
  *  Author: Disgust
  */ 
 
+#include <stdlib.h>
+#include "../AppConfig.h"
 #include "SDC.h"
 
 card_t * initCardObject(spiDevice_t * spiDev, PORT_t cardCtrl, uint8_t presPin, uint8_t pwrPin) {
@@ -35,7 +37,7 @@ void cardPowerDwn(card_t * card) {
 	
 }
 
-void cardTurnOff( card_t * )
+void cardTurnOff(card_t * card)
 {
 	
 }
@@ -158,6 +160,11 @@ uint8_t readR7Response() {
 	return 1;
 }
 
+uint8_t readDataResponse() {
+	DT_resp_tk= SPI_ReadByte();
+	return 1;
+}
+
 void SD_SoftReset(card_t * card)
 {
 	chipSelect(card->spiCard);
@@ -230,6 +237,7 @@ uint8_t SD_blockWrite( card_t * card, uint32_t addr)
 			SPI_WriteByte(card->writeBuffer.buffer + card->writeBuffer.counter);
 			card->readBuffer.counter++;
 		}
+		
 		chipRelease(card->spiCard);
 		return 1;
 	}
