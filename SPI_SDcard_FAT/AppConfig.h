@@ -17,6 +17,8 @@
 #define SD_PwrPin		(1 << 3)
 #define SD_PresPin		(1 << 2)
 
+#define BUFFER_SIZE 512
+
 // Counter definitions
 
 
