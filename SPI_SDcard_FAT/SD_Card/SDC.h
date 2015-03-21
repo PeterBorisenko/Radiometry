@@ -12,7 +12,16 @@
 #define USE_SPI
 //#define USE_SDIO
 
-#include <util/crc16.h>
+#include "crc7.h"
+#include "r_buffer.h"
+
+/*
+CRC7
+
+Generator polynomial: G(x) = x^7 + x^3 + 1.
+M(x) = (first bit) * x^n + (second bit) * x^n - 1 +...+ (last bit) * x^0
+CRC[6...0] = Remainder [(M(x) * x^7) / G(x)]
+*/
 
 #if defined(USE_SPI)
 	#include "../SPI/spi_device.h"
@@ -46,6 +55,8 @@ typedef struct {
 	uint8_t PresPin;
 	card_type_t type;
 	card_state_t state;
+	ring_buffer_t readBuffer;
+	ring_buffer_t writeBuffer;
 	} card_t;
 
 // enum {
@@ -70,74 +81,75 @@ typedef enum {
 #if defined(USE_SPI)
 
 	#define CMD0	0b000000
-		#define cmd0_arg		(uint32_t)(STUFF)			// GO_IDLE_STATE
+		#define cmd0_arg		(uint32_t)(STUFF)			// GO_IDLE_STATE - R1
 	#define CMD1	0b000001
-		#define cmd1_arg(HCS)	(uint32_t)(0x0000|(HCS << 30))		// SEND_OP_COND
+		#define cmd1_arg(HCS)	(uint32_t)(0x0000|(HCS << 30))		// SEND_OP_COND - R1
 	#define CMD6	0b000110
 		#define cmd6_arg(MODE_FUNC)	(uint32_t)(0x0000|(MODE_FUNC << 31)|\
 									(FUNCGRP_6 << 20)|(FUNCGRP_5 << 16)|\
 									(FUNCGRP_4 << 12)|(FUNCGRP_3 << 8)|\
-									(FUNCGRP_2 << 4)|FUNCGRP_1)	// SWITCH_FUNC
+									(FUNCGRP_2 << 4)|FUNCGRP_1)	// SWITCH_FUNC - R1
 	#define CMD8	0b001000
-		#define cmd8_arg(VHS,CH_PTRN)	(uint32_t)(0x0000|(VHS << 8)|CH_PTRN)	// SEND_IF_COND
+		#define cmd8_arg(VHS,CH_PTRN)	(uint32_t)(0x0000|(VHS << 8)|CH_PTRN)	// SEND_IF_COND - R7
 	#define CMD9	0b001001
-		#define cmd9_arg		(uint32_t)(STUFF)			// SEND_CSD
+		#define cmd9_arg		(uint32_t)(STUFF)			// SEND_CSD - R1
 	#define CMD10	0b001010
-		#define cmd10_arg	(uint32_t)(STUFF)			// SEND_CID
+		#define cmd10_arg	(uint32_t)(STUFF)			// SEND_CID - R1
 	#define CMD12	0b001100
-		#define cmd12_arg	(uint32_t)(STUFF)			// STOP_TRANSMISSION
+		#define cmd12_arg	(uint32_t)(STUFF)			// STOP_TRANSMISSION - R1b
 	#define CMD13	0b001101
-		#define cmd13_arg	(uint32_t)(STUFF)			// SEND_STATUS
+		#define cmd13_arg	(uint32_t)(STUFF)			// SEND_STATUS - R2
 	#define CMD16	0b010000
-		#define cmd16_arg(BLK_LENGTH)	(uint32_t)(BLK_LENGTH)		// SET_BLOCKLEN
+		#define cmd16_arg(BLK_LENGTH)	(uint32_t)(BLK_LENGTH)		// SET_BLOCKLEN - R1
 	#define CMD17	0b010001
-		#define cmd17_arg(ADDR)		(uint32_t)(ADDR)			// READ_SINGLE_BLOCK
+		#define cmd17_arg(ADDR)		(uint32_t)(ADDR)			// READ_SINGLE_BLOCK - R1
 	#define CMD18	0b010010
-		#define cmd18_arg(ADDR)		(uint32_t)(ADDR)			// READ_MULTIPLE_BLOCK
+		#define cmd18_arg(ADDR)		(uint32_t)(ADDR)			// READ_MULTIPLE_BLOCK - R1
 	#define CMD24	0b011000
-		#define cmd24_arg(ADDR)		(uint32_t)(ADDR)			// WRITE_BLOCK
+		#define cmd24_arg(ADDR)		(uint32_t)(ADDR)			// WRITE_BLOCK - R1
 	#define CMD25	0b011001
-		#define cmd25_arg(ADDR)		(uint32_t)(ADDR)			// WRITE_MULTIPLE_BLOCK
+		#define cmd25_arg(ADDR)		(uint32_t)(ADDR)			// WRITE_MULTIPLE_BLOCK - R1
 	#define CMD27	0b011011
-		#define cmd27_arg	(uint32_t)(STUFF)			// PROGRAM_CSD
+		#define cmd27_arg	(uint32_t)(STUFF)			// PROGRAM_CSD - R1
 	#define CMD28	0b011100
-		#define cmd28_arg(ADDR)		(uint32_t)(ADDR)			// SET_WRITE_PROT
+		#define cmd28_arg(ADDR)		(uint32_t)(ADDR)			// SET_WRITE_PROT - R1b
 	#define CMD29	0b011101
-		#define cmd29_arg(ADDR)		(uint32_t)(ADDR)			// CLR_WRITE_PROT
+		#define cmd29_arg(ADDR)		(uint32_t)(ADDR)			// CLR_WRITE_PROT - R1b
 	#define CMD30	0b011110
-		#define cmd30_arg(ADDR)		(uint32_t)(ADDR)			// SEND_WRITE_PROT
+		#define cmd30_arg(ADDR)		(uint32_t)(ADDR)			// SEND_WRITE_PROT - R1
 	#define CMD32	0b100000
-		#define cmd32_arg(ADDR)		(uint32_t)(ADDR)			// ERASE_WR_BLK_START
+		#define cmd32_arg(ADDR)		(uint32_t)(ADDR)			// ERASE_WR_BLK_START - R1
 	#define CMD33	0b100001
-		#define cmd33_arg(ADDR)		(uint32_t)(ADDR)			// ERASE_WR_BLK_END
+		#define cmd33_arg(ADDR)		(uint32_t)(ADDR)			// ERASE_WR_BLK_END - R1
 	#define CMD38	0b100110
-		#define cmd38_arg	(uint32_t)(STUFF)			// ERASE
+		#define cmd38_arg	(uint32_t)(STUFF)			// ERASE - R1b
 	#define CMD42	0b101010
-		#define cmd42_arg			(uint32_t)(0x0000)			//LOCK_UNLOCK
+		#define cmd42_arg			(uint32_t)(0x0000)			//LOCK_UNLOCK - R1
 	#define CMD55	0b110111
-		#define cmd55_arg	(uint32_t)(STUFF)			// APP_CMD
+		#define cmd55_arg	(uint32_t)(STUFF)			// APP_CMD - R1
 	#define CMD56	0b111000
-		#define cmd56_arg(RD_WR)	(uint32_t)((STUFF << 1)|RD_WR)		// GEN_CMD
+		#define cmd56_arg(RD_WR)	(uint32_t)((STUFF << 1)|RD_WR)		// GEN_CMD - R1
 	#define CMD58	0b111010
-		#define cmd58_arg	(uint32_t)(STUFF)			// READ_OCR
+		#define cmd58_arg	(uint32_t)(STUFF)			// READ_OCR - R3
 	#define CMD59	0b111011
-		#define cmd59_arg(CRC_OPT)	(uint32_t)((STUFF << 1)|CRC_OPT)
+		#define cmd59_arg(CRC_OPT)	(uint32_t)((STUFF << 1)|CRC_OPT) // CRC_ON_OFF - R1
+	
 	
 	// App specific
 	#define ACMD13	
-		#define acmd13_arg	(uint32_t)(STUFF)			// SD_STATUS
+		#define acmd13_arg	(uint32_t)(STUFF)			// SD_STATUS - R2
 	#define ACMD18
 	#define ACMD22	
-		#define acmd22_arg	(uint32_t)(STUFF)			// SEND_NUM_WR_BLOCKS
+		#define acmd22_arg	(uint32_t)(STUFF)			// SEND_NUM_WR_BLOCKS - R1
 	#define ACMD23	
-		#define acmd23_arg(NUM_OF_BLKS)	(uint32_t)((STUFF << 23)|NUM_OF_BLKS)	// SET_WR_BLOCK_ERASE_COUNT
+		#define acmd23_arg(NUM_OF_BLKS)	(uint32_t)((STUFF << 23)|NUM_OF_BLKS)	// SET_WR_BLOCK_ERASE_COUNT - R1
 	#define ACMD25
 	#define ACMD26
 	#define ACMD38
 	#define ACMD41	0b101001	
-		#define acmd41_arg(HCS)	(uint32_t)(0x0000|(HCS << 30))	// APP_SEND_OP_COND
-	#define ACMD42	
-		#define acmd42_arg(SET_CD)	(uint32_t)((STUFF << 1)|SET_CD)	// SET_CLR_CARD_DETECT
+		#define acmd41_arg(x)	(uint32_t)(0x0000|(x << 30))	// APP_SEND_OP_COND - R1
+	#define ACMD42	 
+		#define acmd42_arg(SET_CD)	(uint32_t)((STUFF << 1)|SET_CD)	// SET_CLR_CARD_DETECT - R1
 	#define ACMD43
 	#define ACMD44
 	#define ACMD45
@@ -146,7 +158,7 @@ typedef enum {
 	#define ACMD48
 	#define ACMD49
 	#define ACMD51	
-		#define acmd51_arg	(uint32_t)(STUFF)				// SEND_SCR
+		#define acmd51_arg	(uint32_t)(STUFF)				// SEND_SCR - R1
 	
 
 #elif defined(USE_SDIO)
@@ -293,6 +305,8 @@ typedef union {
 	uint8_t reg[6];
 } Command_t;
 
+Command_t newCmd(uint8_t cmd, uint32_t arg);
+
 // Data packet
 typedef struct {
 	uint8_t token;
@@ -407,7 +421,7 @@ struct {
 
 
 
-// Data tokens
+// Data start tokens
 #define CMD17_18_24_TK		0b1111110
 #define CMD25_TK			0b1111100
 #define CMD25_ST_TK			0b1111101 // Stop tran for com25
@@ -432,10 +446,13 @@ typedef union {
 // Function definitions
 
 card_t * initCardObject(spiDevice_t *, PORT_t, uint8_t, uint8_t);
+void cardAttachBuffer(spiDevice_t * dev, ring_buffer_t buf, uint8_t R_W);
+void cardDetachBuffer(spiDevice_t * dev, uint8_t R_W);
 
 void cardPowerUp(card_t *);
 void cardPowerDwn(card_t *);
 void cardTurnOff(card_t *);
+void cardDenied(card_t *);
 
 uint8_t cardCheck(card_t *);
 uint16_t cardIDread();
@@ -444,8 +461,8 @@ void SD_SoftReset();
 void SD_init();
 
 uint8_t SD_blockRead(card_t *, uint32_t);
-uint8_t SD_multBlockRead(card_t *, uint32_t, uint8_t *, uint8_t);
-uint8_t SD_blockWrite(card_t *, uint32_t, uint8_t *, uint8_t);
+uint8_t SD_multBlockRead(card_t *, uint32_t, uint8_t, uint8_t *, uint8_t);
+uint8_t SD_blockWrite(card_t *, uint32_t);
 uint8_t SD_multBlockWrite();
 
 void SD_CRCon();

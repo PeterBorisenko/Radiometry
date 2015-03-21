@@ -13,7 +13,17 @@ card_t * initCardObject(spiDevice_t * spiDev, PORT_t cardCtrl, uint8_t presPin, 
 	card01.CtrlPort= cardCtrl;
 	card01.PresPin= presPin;
 	card01.PwrPin= pwrPin;
+	card01.readBuffer.buffer= NULL;
+	card01.writeBuffer.buffer= NULL;
 	return &card01;
+}
+
+void cardAttachBuffer(card_t * dev, ring_buffer_t buf, uint8_t R_W) {
+	R_W?(dev->readBuffer= buf):(dev->writeBuffer= buf);
+}
+
+void cardDetachBuffer(card_t * dev, uint8_t R_W) {
+	R_W?(dev->readBuffer.buffer= NULL):(dev->writeBuffer.buffer= NULL);
 }
 
 void cardPowerUp(card_t * card) {
@@ -25,7 +35,13 @@ void cardPowerDwn(card_t * card) {
 	
 }
 
-void cardTurnOff(card_t * card) {
+void cardTurnOff( card_t * )
+{
+	
+}
+
+
+void cardDenied(card_t * card) {
 	card->state= INACTIVE;
 	card->type= UNCKNOWN;
 	cardPowerDwn(card);
@@ -33,20 +49,19 @@ void cardTurnOff(card_t * card) {
 
 void sendCom(uint8_t cmd, uint32_t arg) {
 	
-	SPI_WriteByte(cmd); //TODO: make SPI_Write fnk for long data types
-	SPI_WriteByte((arg >> 24)&0xFF);
-	SPI_WriteByte((arg >> 16)&0xFF);
-	SPI_WriteByte((arg >> 8)&0xFF);
-	SPI_WriteByte(arg&0xFF);
-	// SPI_WriteByte(CRC);
+	Command_t msg= newCmd(cmd, arg);
+	for (int i= 0; i < 5; i++)
+	{
+		SPI_WriteByte(msg.reg[i]);
+	}
 }
 
 void sendAppCom(uint8_t cmd, uint32_t arg) {
-	SPI_WriteByte(CMD55);
-	SPI_WriteByte(0x00);
-	SPI_WriteByte(0x00);
-	SPI_WriteByte(0x00);
-	SPI_WriteByte(0x00);
+	Command_t msg= newCmd(CMD55, 0);
+	for (int i= 0; i < 5; i++)
+	{
+		SPI_WriteByte(msg.reg[i]);
+	}
 	SPI_FlushBuffer();
 	sendCom(cmd, arg);
 }
@@ -59,8 +74,8 @@ uint8_t cardCheck(card_t * card) // if CARD_PRESENCE
 	chipSelect(card->spiCard);
 	sendCom(CMD0, cmd0_arg);
 	readR1Response();
-	if (R1_response.reg & ~0x01) { // if any bit except the first...
-		cardTurnOff(card);
+	if (R1_response.reg != 0x01) { // if any bit except the first...
+		cardDenied(card);
 		return 0;
 	}
 	sendCom(CMD8, cmd8_arg(0x1, 0xAA));
@@ -73,7 +88,7 @@ uint8_t cardCheck(card_t * card) // if CARD_PRESENCE
 	}
 	else if ((R7_response.parts.check_pattern != 0xAA)||(R7_response.parts.voltage_accepted != 0x01))
 	{
-		cardTurnOff(card);
+		cardDenied(card);
 		return 0;
 	}
 // 	sendCom(CMD58, cmd58_arg(0)); // It's not mandatory
@@ -86,7 +101,7 @@ uint8_t cardCheck(card_t * card) // if CARD_PRESENCE
 		sendAppCom(ACMD41, acmd41_arg(1));
 		readR1Response();
 		if (R1_response.reg >> 1 /*or if timeout occured*/) {
-			cardTurnOff(card);
+			cardDenied(card);
 			return 0;
 		}
 	} while (R1_response.reg != 0x00);
@@ -107,7 +122,7 @@ uint8_t cardCheck(card_t * card) // if CARD_PRESENCE
 	}
 	return 0;
 #else
-	cardTurnOff(card);
+	cardDenied(card);
 	return 0;
 #endif
 }
@@ -152,6 +167,7 @@ void SD_SoftReset(card_t * card)
 	SPI_WriteByte(0x0);
 	SPI_WriteByte(0x0);
 	SPI_WriteByte(0x95); // CRC
+	// TODO: change to command type sending
 	card->state= IDLE;
 }
 
@@ -164,25 +180,74 @@ void SD_CRCoff() {
 }
 
 uint8_t SD_blockRead(card_t * card, uint32_t addr) {
+	chipSelect(card->spiCard);
 	sendCom(CMD17, cmd17_arg(addr));
 	readR1Response();
-	if (/*error in response*/1) {
+	if (R1_response.reg) {
 		ErrorTk_t errorTk;
 		errorTk.reg= SPI_ReadByte();
+		chipRelease(card->spiCard);
 		return 0;
 	}
 	else {
 		/*READ 512 byte block to buffer*/
 		/*check it's CRC*/
+		chipSelect(card->spiCard);
+		for (int i= 0; i < BUFFER_SIZE; i++) {
+			*(card->readBuffer.buffer + card->readBuffer.counter)= SPI_ReadByte();
+			card->readBuffer.counter++;
+		}
+		chipRelease(card->spiCard);
 		return 1;
 	}
+	chipRelease(card->spiCard);
 	return 0;
 }
 
-uint8_t SD_multBlockRead(card_t * card, uint32_t addr, uint8_t * buffer, uint8_t length) {
+uint8_t SD_multBlockRead(card_t * card, uint32_t addr, uint8_t numBlocks, uint8_t * buffer, uint8_t length) {
 	
 	
 	
 	
 	return 0;
 }
+
+uint8_t SD_blockWrite( card_t * card, uint32_t addr)
+{
+	chipSelect(card->spiCard);
+	sendCom(CMD24, cmd24_arg(addr));
+	readR1Response();
+	if (R1_response.reg) {
+		ErrorTk_t errorTk;
+		errorTk.reg= SPI_ReadByte();
+		chipRelease(card->spiCard);
+		return 0;
+	}
+	else {
+		/*send start block token*/
+		SPI_WriteByte(CMD17_18_24_TK);
+		for (int i= 0; i < BUFFER_SIZE; i++) {
+			SPI_WriteByte(card->writeBuffer.buffer + card->writeBuffer.counter);
+			card->readBuffer.counter++;
+		}
+		chipRelease(card->spiCard);
+		return 1;
+	}
+	chipRelease(card->spiCard);
+	return 0;	
+}
+
+
+Command_t newCmd( uint8_t cmd, uint32_t arg )
+{
+	Command_t msg;
+	msg.bit.start_bit= 0;
+	msg.bit.transmission_bit= 1;
+	msg.bit.cmd= cmd;
+	msg.bit.arg= arg;
+	msg.bit.end_bit= 0;
+	msg.bit.crc= crc7_arr(msg.bit.crc, 6, msg.reg);
+	return msg;
+}
+
+
