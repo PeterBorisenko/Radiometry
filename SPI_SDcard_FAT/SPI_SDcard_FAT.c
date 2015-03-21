@@ -58,11 +58,11 @@ int main(void)
 	// Prepare SPI-bus and SPI-device object
 	SPI_Init(SPI_MODE_0);
 	spiDevice_t SD_card01= SPI_deviceInit(SD_SpiCtrlPort, SD_CsPin, "Memory Card", 1);
-	SPI_deviceAttachBuffer(&SD_card01, *R_rbuff01, 1);
-	SPI_deviceAttachBuffer(&SD_card01, *W_rbuff01, 0);
 	
 	// Prepare SD-card object
 	pCard01= initCardObject(&SD_card01, SD_CardCtrlPort, SD_PresPin, SD_PwrPin);
+	cardAttachBuffer(&pCard01, *R_rbuff01, 1);
+	cardAttachBuffer(&pCard01, *W_rbuff01, 0);
 	
 	// Prepare File System
 	;;
