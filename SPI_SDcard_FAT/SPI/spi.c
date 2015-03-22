@@ -23,7 +23,7 @@ void SPI_Init(uint8_t mode) {
 	SPI_MODE= mode;
 }
 
-spiDevice_t SPI_deviceInit(PORT_t devPort, unsigned char csPin, unsigned char * name, uint8_t pr) {
+spiDevice_t SPI_deviceInit(PORT_t devPort, unsigned char csPin, const char * name, uint8_t pr) {
 	devPort.DIRSET= csPin;
 	spiDevice_t spd;
 	strcpy(spd.name, name);

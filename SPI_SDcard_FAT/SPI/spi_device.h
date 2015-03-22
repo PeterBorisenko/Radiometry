@@ -29,7 +29,7 @@ extern "C" {
 typedef uint8_t spiMutex_t;
 
 typedef struct {
-    unsigned char name[8];
+    char name[20];
 	PORT_t devPort;
     uint8_t csPin;
     uint8_t priority;
@@ -43,7 +43,7 @@ enum {
 
     // SPI core functions
     void SPI_Init(uint8_t mode);
-    spiDevice_t SPI_deviceInit(PORT_t devPort, uint8_t csPin, unsigned char * name, uint8_t pr);
+    spiDevice_t SPI_deviceInit(PORT_t devPort, uint8_t csPin, const char * name, uint8_t pr);
     
     void SPI_WriteByte(uint8_t);
     uint8_t SPI_ReadByte();

@@ -27,7 +27,7 @@
 #include "FAT/integer.h"
 #include "FAT/pff.h"
 
-volatile static card_t * pCard01;
+static card_t * pCard01;
 
 // Read and write buffers
 static uint8_t Wbuff01[BUFFER_SIZE]; // storage for write buffer
@@ -71,8 +71,8 @@ int main(void)
 	
 	// Prepare SD-card object
 	pCard01= initCardObject(&SD_card01, SD_CardCtrlPort, SD_PresPin, SD_PwrPin);
-	cardAttachBuffer(&pCard01, *Rbuff01, 1);
-	cardAttachBuffer(&pCard01, *Wbuff01, 0);
+	cardAttachBuffer(pCard01, Rbuff01, 1);
+	cardAttachBuffer(pCard01, Wbuff01, 0);
 	
 	// Prepare File System
 	;;

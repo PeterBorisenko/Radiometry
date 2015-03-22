@@ -62,7 +62,7 @@ extern "C" {
 		SPI_DATA_REG_t SPI_DATA_REG;
 	} SPI_C_t;
 	
-	SPI_C_t * SPI_C= (SPI_C_t *)0x08C0;
+	static SPI_C_t * SPI_C= (SPI_C_t *)0x08C0;
 	
 	// SPI MODES
 	#define SPI_MODE_0			0x00	// CPOL= 0, CPHA= 0, 

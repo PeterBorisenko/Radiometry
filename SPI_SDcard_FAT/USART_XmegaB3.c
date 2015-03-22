@@ -8,7 +8,7 @@
 #include "USART_XmegaB3.h"
 #include "AppConfig.h"
 
-static USART_t * debugPort= 0x8A0;
+static USART_t * debugPort= (USART_t *)0x8A0;
 
  void prepareUSART(unsigned long ubrr) {
 	ubrr= ((F_CPU /((ubrr) * 16 ) ) - 1);

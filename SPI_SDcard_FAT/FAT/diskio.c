@@ -13,7 +13,7 @@ extern card_t * pCard01;
 
 DSTATUS disk_initialize (void)
 {
-	DSTATUS stat;
+	DSTATUS stat= RES_ERROR;
 	
 	return stat;
 }
@@ -54,7 +54,7 @@ DRESULT disk_writep (
 )
 {
 	DRESULT res= RES_ERROR;
-	DWORD wc;
+	static WORD wc;
 
 	if (!buff) {
 		if (sc) {/* Initiate sector write process */
