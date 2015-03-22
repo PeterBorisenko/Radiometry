@@ -15,17 +15,17 @@ card_t * initCardObject(spiDevice_t * spiDev, PORT_t cardCtrl, uint8_t presPin, 
 	card01.CtrlPort= cardCtrl;
 	card01.PresPin= presPin;
 	card01.PwrPin= pwrPin;
-	card01.readBuffer.buffer= NULL;
-	card01.writeBuffer.buffer= NULL;
+	card01.readBuffer= NULL;
+	card01.writeBuffer= NULL;
 	return &card01;
 }
 
-void cardAttachBuffer(card_t * dev, ring_buffer_t buf, uint8_t R_W) {
+void cardAttachBuffer(card_t * dev, uint8_t * buf, uint8_t R_W) {
 	R_W?(dev->readBuffer= buf):(dev->writeBuffer= buf);
 }
 
 void cardDetachBuffer(card_t * dev, uint8_t R_W) {
-	R_W?(dev->readBuffer.buffer= NULL):(dev->writeBuffer.buffer= NULL);
+	R_W?(dev->readBuffer= NULL):(dev->writeBuffer= NULL);
 }
 
 void cardPowerUp(card_t * card) {
@@ -119,7 +119,7 @@ uint8_t cardCheck(card_t * card) // if CARD_PRESENCE
 	else {
 		card->type= SD_v2_SC;
 		card->state= READY;
-		sendCom(CMD16, cmd16_arg(512));// Force block size to 512 bytes for work with FAT systems
+		sendCom(CMD16, cmd16_arg(512)); // Force block size to 512 bytes for work with FAT systems
 		return 1;
 	}
 	return 0;
@@ -161,14 +161,15 @@ uint8_t readR7Response() {
 }
 
 uint8_t readDataResponse() {
-	DT_resp_tk= SPI_ReadByte();
+	uint8_t a= SPI_ReadByte();
+	DT_resp_tk= *((struct resp_str *)&a);
 	return 1;
 }
 
 void SD_SoftReset(card_t * card)
 {
 	chipSelect(card->spiCard);
-	SPI_WriteByte(0x40); // CMD0 - ?
+	SPI_WriteByte(0x40); // CMD0 + start bits
 	SPI_WriteByte(0x0);
 	SPI_WriteByte(0x0);
 	SPI_WriteByte(0x0);
@@ -201,8 +202,7 @@ uint8_t SD_blockRead(card_t * card, uint32_t addr) {
 		/*check it's CRC*/
 		chipSelect(card->spiCard);
 		for (int i= 0; i < BUFFER_SIZE; i++) {
-			*(card->readBuffer.buffer + card->readBuffer.counter)= SPI_ReadByte();
-			card->readBuffer.counter++;
+			*(card->readBuffer++)= SPI_ReadByte();
 		}
 		chipRelease(card->spiCard);
 		return 1;
@@ -234,8 +234,15 @@ uint8_t SD_blockWrite( card_t * card, uint32_t addr)
 		/*send start block token*/
 		SPI_WriteByte(CMD17_18_24_TK);
 		for (int i= 0; i < BUFFER_SIZE; i++) {
-			SPI_WriteByte(card->writeBuffer.buffer + card->writeBuffer.counter);
-			card->readBuffer.counter++;
+			SPI_WriteByte(*(card->writeBuffer++));
+		}
+		readDataResponse();
+		if (DT_resp_tk.status != DATA_ACCEPTED)
+		{
+			sendCom(CMD13, cmd13_arg);
+			readR2Response();
+			chipRelease(card->spiCard);
+			return 0;
 		}
 		
 		chipRelease(card->spiCard);

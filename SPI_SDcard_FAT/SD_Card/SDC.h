@@ -41,11 +41,11 @@ typedef enum {
 } card_state_t;
 
 typedef enum {
-	UNCKNOWN,
-	SD_v1,
-	SD_v2_SC,
-	SD_v2_HC,
-	MMC_v3
+	UNCKNOWN=	0x00,
+	MMC_v3=		0x01,
+	SD_v1=		0x02,
+	SD_v2_SC=	0x04,
+	SD_v2_HC=	0x08	// Block addressing
 	} card_type_t;
 
 typedef struct {
@@ -55,8 +55,8 @@ typedef struct {
 	uint8_t PresPin;
 	card_type_t type;
 	card_state_t state;
-	ring_buffer_t readBuffer;
-	ring_buffer_t writeBuffer;
+	uint8_t * readBuffer;
+	uint8_t * writeBuffer;
 	} card_t;
 
 // enum {
@@ -80,7 +80,7 @@ typedef enum {
 // SD Card Commands
 #if defined(USE_SPI)
 
-	#define CMD0	0b000000
+	#define CMD0	0b000000 // it mai be (0x40 + N) - but without first 2 bits in Command_t
 		#define cmd0_arg		(uint32_t)(STUFF)			// GO_IDLE_STATE - R1
 	#define CMD1	0b000001
 		#define cmd1_arg(HCS)	(uint32_t)(0x0000|(HCS << 30))		// SEND_OP_COND - R1
@@ -135,7 +135,7 @@ typedef enum {
 		#define cmd59_arg(CRC_OPT)	(uint32_t)((STUFF << 1)|CRC_OPT) // CRC_ON_OFF - R1
 	
 	
-	// App specific
+	// App specific	// it mai be (0xC0 + N)
 	#define ACMD13	
 		#define acmd13_arg	(uint32_t)(STUFF)			// SD_STATUS - R2
 	#define ACMD18
@@ -147,7 +147,7 @@ typedef enum {
 	#define ACMD26
 	#define ACMD38
 	#define ACMD41	0b101001	
-		#define acmd41_arg(x)	(uint32_t)(0x0000|(x << 30))	// APP_SEND_OP_COND - R1
+		#define acmd41_arg(x)	(uint32_t)(0x0000|((x&0x1) << 30))	// APP_SEND_OP_COND - R1
 	#define ACMD42	 
 		#define acmd42_arg(SET_CD)	(uint32_t)((STUFF << 1)|SET_CD)	// SET_CLR_CARD_DETECT - R1
 	#define ACMD43
@@ -305,8 +305,6 @@ typedef union {
 	uint8_t reg[6];
 } Command_t;
 
-Command_t newCmd(uint8_t cmd, uint32_t arg);
-
 // Data packet
 typedef struct {
 	uint8_t token;
@@ -408,7 +406,7 @@ union {
 
 // COntrol tokens
 	//Data response token
-struct {
+struct resp_str{
 	uint8_t not_used : 3;
 	uint8_t bit4 : 1;
 	uint8_t status : 3;
@@ -439,20 +437,24 @@ typedef union {
 } ErrorTk_t;
 
 
-
-
-
-
-// Function definitions
+/*****************************
+/
+/	 Function definitions
+/
+******************************/
 
 card_t * initCardObject(spiDevice_t *, PORT_t, uint8_t, uint8_t);
-void cardAttachBuffer(card_t * dev, ring_buffer_t buf, uint8_t R_W);
+void cardAttachBuffer(card_t * dev, uint8_t * buf, uint8_t R_W);
 void cardDetachBuffer(card_t * dev, uint8_t R_W);
 
 void cardPowerUp(card_t *);
 void cardPowerDwn(card_t *);
 void cardTurnOff(card_t *);
 void cardDenied(card_t *);
+
+void sendCom(uint8_t cmd, uint32_t arg);
+void sendAppCom(uint8_t cmd, uint32_t arg);
+
 
 uint8_t cardCheck(card_t *);
 uint16_t cardIDread();
@@ -467,6 +469,8 @@ uint8_t SD_multBlockWrite();
 
 void SD_CRCon();
 void SD_CRCoff();
+
+Command_t newCmd(uint8_t cmd, uint32_t arg);
 
 uint8_t readR1Response();
 uint8_t readR2Response();
