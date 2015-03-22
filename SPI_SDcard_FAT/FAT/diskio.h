@@ -10,6 +10,7 @@ extern "C" {
 #endif
 
 #include "integer.h"
+#include <util/delay.h>
 
 /* Status of Disk Functions */
 typedef BYTE	DSTATUS;
